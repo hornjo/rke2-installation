@@ -1,0 +1,19 @@
+---
+rke2-cluster:
+  vars:
+    ansible_user: user
+  children:
+    server:
+      hosts:
+        lx-rke2-ctl01:
+          ansible_host: 192.168.178.21
+        lx-rke2-ctl02:
+          ansible_host: 192.168.178.22
+        lx-rke2-ctl03:
+          ansible_host: 192.168.178.23
+    agent:
+      hosts:
+        lx-rke2-wrk01:
+          ansible_host: 192.168.178.24
+        lx-rke2-wrk02:
+          ansible_host: 192.168.178.2

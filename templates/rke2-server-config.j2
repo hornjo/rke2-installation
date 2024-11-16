@@ -1,0 +1,14 @@
+write-kubeconfig-mode: "0644"
+{% if inventory_hostname != groups['server'][0] %}
+token: {{ hostvars[groups['server'][0]]['token'] }}
+server: https://{{ vip }}:9345
+{% endif %}
+tls-san:
+  - {{ vip }}
+  {% for host in groups['server'] -%}
+  - {{ hostvars[host]['ansible_host'] }}
+  {%- endfor -%}
+node-label:
+  - server=true
+# disable:
+#   - rke2-ingress-nginx
