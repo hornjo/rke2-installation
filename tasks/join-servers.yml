@@ -28,30 +28,6 @@
   changed_when: true
   when: inventory_hostname == groups['server'][0]
 
-# Use kubectl to deploy yaml. Perhaps this can be added to the manifest folder initially
-- name: Apply kube vip configuration file
-  ansible.builtin.command:
-    cmd: kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml apply -f https://kube-vip.io/manifests/rbac.yaml
-  changed_when: true
-  when: inventory_hostname == groups['servers'][0]
-
-# Apply the kube-vip configration. Perhaps this can be added to the manifest folder initially
-- name: Apply kube vip configuration file
-  ansible.builtin.command:
-    cmd: kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml apply -f https://raw.githubusercontent.com/kube-vip/kube-vip-cloud-provider/main/manifest/kube-vip-cloud-controller.yaml
-  changed_when: true
-  when: inventory_hostname == groups['servers'][0]
-
-# Check that additional servers are restarted
-- name: Ensure additional RKE2 servers are enabled and running
-  ansible.builtin.systemd:
-    name: rke2-server
-    enabled: true
-    state: restarted
-    daemon_reload: true
-  when: inventory_hostname != groups['servers'][0]
-
-# enable additional servers
 - name: Ensure RKE2 server is enabled and running
   ansible.builtin.systemd:
     name: rke2-server
@@ -59,3 +35,4 @@
     state: restarted
     daemon_reload: true
   when: inventory_hostname != groups['servers'][0]
+  become: true

@@ -5,6 +5,8 @@
   roles:
     - rke2-installation
   vars:
-    vip: "192.168.178.20"
-    rke2_version: "v1.31.2+rke2r1"
-    arch: "amd64"
+    rke2_installation_rke2_version: "v1.31.2+rke2r1"
+    rke2_installation_arch: "amd64"
+    rke2_installation_lb_ip: "192.168.178.20"
+    rke2_installation_lb_kube_api_port: "6444"
+    rke2_installation_lb_rke2_api_port: "9344"

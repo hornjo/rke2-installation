@@ -4,7 +4,7 @@ Description=RKE2 server
 After=network.target
 
 [Service]
-ExecStart={{ rke2_install_dir }}/rke2 server
+ExecStart={{ rke2_installation_install_dir }}/rke2 server
 KillMode=process
 Restart=on-failure
 RestartSec=5s

@@ -3,7 +3,7 @@
 Role Name
 =========
 
-This Role installes a HA RKE2 Cluster with the Kube-VIP for HA and the Loadbalancer to expose. As this is onpremise, the kube-vip-cloud-controler is used to expose the loadbalancer IPs.
+This role installs a HA RKE2 Cluster. As a Prerequisite you have to have a LB setup pointing to the nodes.
 
 Requirements
 ------------

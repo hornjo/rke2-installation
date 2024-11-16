@@ -3,10 +3,6 @@
   ansible.builtin.include_tasks: prepare-nodes.yml
   tags: prepare-nodes
 
-- name: Creation of the kube-vip manifest for HA and prepare for loadbalancing
-  ansible.builtin.include_tasks: kube-vip.yml
-  tags: kube-vip
-
 - name: Bootstrap the RKE cluster on the first node
   ansible.builtin.include_tasks: bootstrap-rke.yml
   tags: bootstrap-rke

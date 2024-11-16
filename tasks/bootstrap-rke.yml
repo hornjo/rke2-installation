@@ -41,7 +41,6 @@
   when: inventory_hostname == groups["server"][0]
   become: true
 
-
 - name: Wait for node-token
   ansible.builtin.wait_for:
     path: /var/lib/rancher/rke2/server/node-token
@@ -92,6 +91,7 @@
 - name: Save Master node-token for later
   ansible.builtin.set_fact:
     token: "{{ rke2_token.content | b64decode | regex_replace('\n', '') }}"
+  when: inventory_hostname == groups["server"][0]
 
 - name: Restore node-token file access
   ansible.builtin.file:
@@ -117,10 +117,10 @@
   when: inventory_hostname == groups["server"][0]
   become: true
 
-- name: Replace IP address with VIP
+- name: Replace IP address with LB IP
   ansible.builtin.replace:
     path: /home/{{ ansible_user }}/.kube/config
-    regexp: '127.0.0.1'
-    replace: "{{ vip }}"
+    regexp: '127.0.0.1:6443'
+    replace: "{{ rke2_installation_lb_ip }}:{{ rke2_installation_lb_kube_api_port }}"
   when: inventory_hostname == groups["server"][0]
   become: true
