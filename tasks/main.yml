@@ -7,23 +7,10 @@
   ansible.builtin.include_tasks: bootstrap-rke.yml
   tags: bootstrap-rke
 
-# # Adds additional servers using the token from the previous task
-# - name: Add additional RKE2 Servers
-#   hosts: servers
-#   gather_facts: true
-#   roles:
-#     - add-server
+- name: Joining additional server nodes
+  ansible.builtin.include_tasks: join-servers.yml
+  tags: join-servers
 
-# # Adds agents to the cluster
-# - name: Add additional RKE2 Agents
-#   hosts: agents
-#   gather_facts: true
-#   roles:
-#     - add-agent
-
-# # Finish kube-vip, add metallb
-# - name: Apply manifests after cluster is created
-#   hosts: servers
-#   gather_facts: true
-#   roles:
-#     - apply-manifests
+- name: Joining additional agent nodes
+  ansible.builtin.include_tasks: join-agents.yml
+  tags: join-agents

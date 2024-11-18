@@ -1,0 +1,43 @@
+- name: Deploy RKE2 agent Configuration
+  ansible.builtin.template:
+    src: templates/rke2-agent-config.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname in groups['agent']
+  become: true
+  tags: join-agents
+
+- name: Create systemd service file for RKE2 agent
+  ansible.builtin.template:
+    src: templates/rke2-agent.service.j2
+    dest: /etc/systemd/system/rke2-agent.service
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname in groups['agent']
+  become: true
+  tags: join-agents
+
+- name: Reload RKE-agent service
+  ansible.builtin.systemd:
+    name: rke2-agent
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  when: inventory_hostname in groups['agent']
+  become: true
+  tags: join-agents
+
+- name: Set defaults for bash_comletion on node
+  ansible.builtin.blockinfile:
+    path: ~/.bashrc
+    state: present
+    block: |
+      if [ -f /etc/bash_completion ]; then
+         . /etc/bash_completion
+      fi
+      source <(kubectl completion bash)
+  when: inventory_hostname in groups['server']
+  tags: join-agents

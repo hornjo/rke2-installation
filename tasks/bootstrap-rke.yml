@@ -4,6 +4,7 @@
     state: directory
     mode: '0644'
   become: true
+  tags: bootstrap-rke
 
 - name: Create directory for RKE2 token
   ansible.builtin.file:
@@ -11,6 +12,7 @@
     state: directory
     mode: '0644'
   become: true
+  tags: bootstrap-rke
 
 - name: Deploy RKE2 server Configuration
   ansible.builtin.template:
@@ -21,6 +23,7 @@
     mode: '0644'
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Create systemd service file for RKE2 server
   ansible.builtin.template:
@@ -31,6 +34,7 @@
     mode: '0644'
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Reload RKE-Server service
   ansible.builtin.systemd:
@@ -40,18 +44,21 @@
     daemon_reload: true
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Wait for node-token
   ansible.builtin.wait_for:
     path: /var/lib/rancher/rke2/server/node-token
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Wait for kubectl
   ansible.builtin.wait_for:
     path: /var/lib/rancher/rke2/bin/kubectl
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Copy kubectl to user bin
   ansible.builtin.copy:
@@ -61,17 +68,20 @@
     remote_src: true
   become: true
   when: inventory_hostname == groups["server"][0]
+  tags: bootstrap-rke
 
 - name: Wait for kubectl
   ansible.builtin.wait_for:
     path: /usr/local/bin/kubectl
   when: inventory_hostname == groups["server"][0]
+  tags: bootstrap-rke
 
 - name: Check if the token exists and get details
   ansible.builtin.stat:
     path: /var/lib/rancher/rke2/server
   register: token_stats
   become: true
+  tags: bootstrap-rke
 
 - name: Change file access for node-token
   ansible.builtin.file:
@@ -79,6 +89,7 @@
     mode: "g+rx,o+rx"
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Fetch the token from the first server node and make var accessible for all
   ansible.builtin.slurp:
@@ -87,11 +98,13 @@
   when: inventory_hostname == groups["server"][0]
   run_once: true
   become: true
+  tags: bootstrap-rke
 
 - name: Save Master node-token for later
   ansible.builtin.set_fact:
     token: "{{ rke2_token.content | b64decode | regex_replace('\n', '') }}"
   when: inventory_hostname == groups["server"][0]
+  tags: bootstrap-rke
 
 - name: Restore node-token file access
   ansible.builtin.file:
@@ -99,6 +112,7 @@
     mode: "{{ token_stats.stat.mode }}"
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Ensure .kube directory exists in user's home
   ansible.builtin.file:
@@ -106,6 +120,7 @@
     state: directory
     mode: '0755'
   become: true
+  tags: bootstrap-rke
 
 - name: Copy config file to user home directory
   ansible.builtin.copy:
@@ -116,6 +131,7 @@
     mode: "u=rw,g=,o="
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
 
 - name: Replace IP address with LB IP
   ansible.builtin.replace:
@@ -124,3 +140,15 @@
     replace: "{{ rke2_installation_lb_ip }}:{{ rke2_installation_lb_kube_api_port }}"
   when: inventory_hostname == groups["server"][0]
   become: true
+  tags: bootstrap-rke
+
+- name: Wait for cluster API to be ready
+  ansible.builtin.command:
+    cmd: "kubectl get nodes"
+  register: kubectl_output
+  until: "'Error' not in kubectl_output.stderr"
+  retries: 120
+  delay: 10
+  changed_when: true
+  when: inventory_hostname == groups['server'][0]
+  tags: bootstrap-rke

@@ -1,3 +1,14 @@
+- name: Deploy RKE2 server Configuration
+  ansible.builtin.template:
+    src: templates/rke2-server-config.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: '0644'
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  become: true
+  tags: join-servers
+
 - name: Create systemd service file for RKE2 server
   ansible.builtin.template:
     src: templates/rke2-server.service.j2
@@ -7,18 +18,62 @@
     mode: '0644'
   when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
   become: true
+  tags: join-servers
 
-- name: Create systemd service file for RKE2 agent
-  ansible.builtin.template:
-    src: templates/rke2-agent.service.j2
-    dest: /etc/systemd/system/rke2-agent.service
-    owner: root
-    group: root
-    mode: '0644'
+- name: Reload RKE-Server service
+  ansible.builtin.systemd:
+    name: rke2-server
+    enabled: true
+    state: restarted
+    daemon_reload: true
   when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
   become: true
+  tags: join-servers
 
-- name: Wait for cluster API to be ready (can take 5-10 mins depending on internet/hardware)
+- name: Wait for kubectl
+  ansible.builtin.wait_for:
+    path: /var/lib/rancher/rke2/bin/kubectl
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  become: true
+  tags: join-servers
+
+- name: Copy kubectl to user bin
+  ansible.builtin.copy:
+    src: /var/lib/rancher/rke2/bin/kubectl
+    dest: /usr/local/bin/kubectl
+    mode: '0755'
+    remote_src: true
+  become: true
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  tags: join-servers
+
+- name: Wait for kubectl
+  ansible.builtin.wait_for:
+    path: /usr/local/bin/kubectl
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  tags: join-servers
+
+- name: Ensure .kube directory exists in user's home
+  ansible.builtin.file:
+    path: "/home/{{ ansible_user }}/.kube"
+    state: directory
+    mode: '0755'
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  become: true
+  tags: join-servers
+
+- name: Copy config file to user home directory
+  ansible.builtin.copy:
+    src: /etc/rancher/rke2/rke2.yaml
+    dest: "/home/{{ ansible_user }}/.kube/config"
+    remote_src: true
+    owner: "{{ ansible_user }}"
+    mode: "u=rw,g=,o="
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  become: true
+  tags: join-servers
+
+- name: Wait for cluster API to be ready
   ansible.builtin.command:
     cmd: "kubectl get nodes"
   register: kubectl_output
@@ -26,13 +81,38 @@
   retries: 120
   delay: 10
   changed_when: true
-  when: inventory_hostname == groups['server'][0]
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
+  tags: join-servers
 
-- name: Ensure RKE2 server is enabled and running
-  ansible.builtin.systemd:
-    name: rke2-server
-    enabled: true
-    state: restarted
-    daemon_reload: true
-  when: inventory_hostname != groups['servers'][0]
+- name: Replace IP address with LB IP
+  ansible.builtin.replace:
+    path: /home/{{ ansible_user }}/.kube/config
+    regexp: '127.0.0.1:6443'
+    replace: "{{ rke2_installation_lb_ip }}:{{ rke2_installation_lb_kube_api_port }}"
+  when: inventory_hostname in groups['server'] and inventory_hostname != groups['server'][0]
   become: true
+  tags: join-servers
+
+- name: Taint control plane
+  when: rke2_installation_control_plane_workload is true
+  kubernetes.core.k8s_taint:
+    state: absent
+    name: "{{ item }}"
+    taints:
+      - effect: NoSchedule
+        key: "node-role.kubernetes.io/control-plane"
+  loop: "{{ groups['server'] }}"
+  become: true
+  tags: join-servers
+
+- name: Set defaults for bash_comletion on node
+  ansible.builtin.blockinfile:
+    path: ~/.bashrc
+    state: present
+    block: |
+      if [ -f /etc/bash_completion ]; then
+         . /etc/bash_completion
+      fi
+      source <(kubectl completion bash)
+  when: inventory_hostname in groups['server']
+  tags: join-servers

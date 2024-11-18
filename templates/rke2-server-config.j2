@@ -5,8 +5,8 @@ server: https://{{ rke2_installation_lb_ip }}:{{ rke2_installation_lb_rke2_api_p
 {% endif %}
 node-label:
   - server=true
-# disable:
-#   - rke2-ingress-nginx
+disable:
+  - rke2-ingress-nginx
 tls-san:
   - {{ rke2_installation_lb_ip }}
   {% for host in groups['server'] -%}

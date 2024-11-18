@@ -16,4 +16,4 @@ rke2-cluster:
         lx-rke2-wrk01:
           ansible_host: 192.168.178.24
         lx-rke2-wrk02:
-          ansible_host: 192.168.178.2
+          ansible_host: 192.168.178.25
