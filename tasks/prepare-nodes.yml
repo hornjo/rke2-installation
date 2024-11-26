@@ -34,3 +34,11 @@
     mode: '0755'
     state: file
   become: true
+
+- name: Enable iscsi service
+  ansible.builtin.systemd:
+    name: iscsid
+    enabled: true
+    state: restarted
+    daemon_reload: true
+  become: true
