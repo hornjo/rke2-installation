@@ -5,6 +5,7 @@ rke2_installation_arch: "" # amd64 or arm64
 rke2_installation_install_dir: "/usr/local/bin"
 rke2_installation_binary_url: "https://github.com/rancher/rke2/releases/download/{{ rke2_installation_rke2_version }}/rke2.linux-{{ rke2_installation_arch }}"
 rke2_installation_lb_ip: ""
+rke2_installation_cni: "canal"
 rke2_installation_lb_kube_api_port: ""
 rke2_installation_lb_rke2_api_port: ""
 rke2_installation_control_plane_workload: false
